@@ -1,0 +1,39 @@
+{
+  "name": "skill-md",
+  "version": "0.1.0",
+  "description": "Validator and open spec for SKILL.md — a portable Markdown format that gives AI agents repeatable skills",
+  "keywords": [
+    "skill-md",
+    "ai-agent",
+    "agent-skills",
+    "automation",
+    "rpa",
+    "llm",
+    "claude",
+    "chatgpt",
+    "workflow"
+  ],
+  "homepage": "https://github.com/ykzeng-yale/skill-md",
+  "bugs": "https://github.com/ykzeng-yale/skill-md/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ykzeng-yale/skill-md.git"
+  },
+  "license": "MIT",
+  "bin": {
+    "skill-md": "bin/cli.js"
+  },
+  "main": "lib/validate.js",
+  "files": [
+    "bin",
+    "lib",
+    "SPEC.md",
+    "examples"
+  ],
+  "scripts": {
+    "test": "node test/validate.test.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
