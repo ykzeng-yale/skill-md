@@ -1,5 +1,8 @@
 # skill-md
 
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
+
 Validator and open spec for **SKILL.md** — a portable Markdown format that gives AI agents
 repeatable skills.
 
