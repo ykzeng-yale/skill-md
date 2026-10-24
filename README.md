@@ -170,6 +170,10 @@ Inputs: `path` (file or directory, default `.`), `strict` / `fail-on-warnings` (
 Errors always fail the run; warnings only do under `strict`; hints are notices. A repo with no
 skill files passes, so you can add the action before writing your first skill.
 
+Step-level problems annotate the offending line — gapped numbering lands on the `### Step N`
+heading itself. File-level ones (a missing frontmatter key, a missing section) annotate line 1,
+because they are about the file rather than a place in it.
+
 Why bother: the failure this catches is quiet. A hand-edit that leaves step numbering at
 1, 2, 4 still *looks* fine in review, and an agent replaying in order skips the missing step
 without complaining.
