@@ -88,8 +88,8 @@ Rules:
 ## Validation
 
 ```sh
-npx skill-md validate SKILL.md
-npx skill-md validate ./skills --strict   # recurse; fail CI on warnings too
+npx github:ykzeng-yale/skill-md validate SKILL.md
+npx github:ykzeng-yale/skill-md validate ./skills --strict   # recurse; fail CI on warnings too
 ```
 
 Severity levels:

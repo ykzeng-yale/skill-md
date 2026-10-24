@@ -4,7 +4,7 @@ Validator and open spec for **SKILL.md** — a portable Markdown format that giv
 repeatable skills.
 
 ```sh
-npx skill-md validate SKILL.md
+npx github:ykzeng-yale/skill-md validate SKILL.md
 ```
 
 ```
@@ -12,6 +12,9 @@ npx skill-md validate SKILL.md
 ```
 
 Zero dependencies, so `npx` runs instantly and it drops into CI without a toolchain.
+
+> Not yet on npm, so install straight from GitHub as shown. Once published the shorter
+> `npx skill-md validate` will work too.
 
 ## The idea
 
@@ -63,15 +66,19 @@ catches that class of problem before an agent acts on it.
 ## Usage
 
 ```sh
-npx skill-md validate SKILL.md              # one file
-npx skill-md validate ./skills              # recurse for SKILL.md / *.skill.md
-npx skill-md validate ./skills --strict     # warnings fail too (CI)
-npx skill-md validate SKILL.md --json       # machine-readable
+npx github:ykzeng-yale/skill-md validate SKILL.md              # one file
+npx github:ykzeng-yale/skill-md validate ./skills              # recurse for SKILL.md / *.skill.md
+npx github:ykzeng-yale/skill-md validate ./skills --strict     # warnings fail too (CI)
+npx github:ykzeng-yale/skill-md validate SKILL.md --json       # machine-readable
 ```
 
 Exit codes: `0` valid · `1` problems found · `2` bad usage.
 
 As a library:
+
+```sh
+npm install github:ykzeng-yale/skill-md
+```
 
 ```js
 const { validate } = require('skill-md');
@@ -82,7 +89,7 @@ const res = validate(fs.readFileSync('SKILL.md', 'utf8'));
 ### In CI
 
 ```yaml
-- run: npx skill-md validate ./skills --strict
+- run: npx github:ykzeng-yale/skill-md validate ./skills --strict
 ```
 
 ## Which agents consume it
