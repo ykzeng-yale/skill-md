@@ -4,14 +4,22 @@
 const fs = require('fs');
 const path = require('path');
 const { validate } = require('../lib/validate.js');
+const { convert } = require('../lib/convert.js');
 
 const USAGE = `skill-md — validate SKILL.md files (the portable format for AI agent skills)
 
 Usage:
   npx skill-md validate <file...>     Validate one or more SKILL.md files
   npx skill-md validate <dir>         Validate every SKILL.md found under a directory
+  npx skill-md convert <recording>    Chrome DevTools Recorder JSON -> SKILL.md (stdout)
   npx skill-md --version
   npx skill-md --help
+
+Convert options:
+  --name <title>        Override the skill name/title
+  --out <file>          Write to a file instead of stdout
+
+Record a flow in Chrome: DevTools -> Recorder -> record -> export as JSON.
 
 Options:
   --quiet     Only print problems, not per-file success lines
@@ -60,6 +68,44 @@ function main(argv) {
   const positional = args.filter(a => !a.startsWith('-'));
 
   const cmd = positional[0];
+
+  if (cmd === 'convert') {
+    const src = positional[1];
+    if (!src) { process.stderr.write('convert: no recording given\n'); return 2; }
+    if (!fs.existsSync(src)) { process.stderr.write(`not found: ${src}\n`); return 2; }
+    let recording;
+    try {
+      recording = JSON.parse(fs.readFileSync(src, 'utf8'));
+    } catch (err) {
+      process.stderr.write(`convert: ${src} is not valid JSON (${err.message})\n`);
+      return 2;
+    }
+    const nameIdx = args.indexOf('--name');
+    const outIdx = args.indexOf('--out');
+    let res;
+    try {
+      res = convert(recording, { name: nameIdx !== -1 ? args[nameIdx + 1] : undefined });
+    } catch (err) {
+      process.stderr.write(`convert: ${err.message}\n`);
+      return 2;
+    }
+    // Never emit a file our own validator would reject.
+    const check = validate(res.markdown);
+    if (!check.ok) {
+      process.stderr.write('convert: produced an invalid SKILL.md (this is a bug, please report):\n');
+      for (const e of check.errors) process.stderr.write(`    error line ${e.line}: ${e.msg}\n`);
+      return 1;
+    }
+    if (outIdx !== -1 && args[outIdx + 1]) {
+      fs.writeFileSync(args[outIdx + 1], res.markdown);
+      process.stderr.write(`wrote ${args[outIdx + 1]} — ${res.stats.kept} steps (${res.stats.dropped} browser-level steps omitted)\n`);
+    } else {
+      process.stdout.write(res.markdown);
+      process.stderr.write(`${res.stats.kept} steps (${res.stats.dropped} browser-level steps omitted)\n`);
+    }
+    return 0;
+  }
+
   if (cmd !== 'validate') {
     process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}`);
     return 2;

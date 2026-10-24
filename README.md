@@ -19,6 +19,32 @@ Zero dependencies, so `npx` runs instantly and it drops into CI without a toolch
 > Not yet on npm, so install straight from GitHub as shown. Once published the shorter
 > `npx skill-md validate` will work too.
 
+## Already recorded the flow in Chrome? Convert it
+
+Chrome ships a recorder (DevTools → **Recorder** → record → export as JSON). If you have one of
+those exports, you have a skill already — no new tooling, nothing to grant screen access to:
+
+```sh
+npx github:ykzeng-yale/skill-md convert recording.json
+```
+
+```
+### Step 2: Click New
+
+Click "New".
+
+### Step 3: Fill in Amount
+
+Type "48.20" into "Amount".
+```
+
+It reads Chrome's `aria/` selectors to get human labels rather than emitting `#amount-field`, drops
+browser plumbing (viewport, key-up, tab close, modifier-only keypresses) because a person replaying
+the task does not perform those, and re-validates its own output so it can never emit a file this
+tool would reject.
+
+`--name "My Flow"` to set the title, `--out FILE` to write to disk.
+
 ## The idea
 
 A prompt is a request. A **SKILL.md is a procedure**.
