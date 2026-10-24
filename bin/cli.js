@@ -2,10 +2,10 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { convert } = require('../lib/convert.js');
 const { convertSide } = require('../lib/side.js');
+const { findSkillFiles } = require('../lib/find.js');
 
 const USAGE = `skill-md — validate SKILL.md files (the portable format for AI agent skills)
 
@@ -38,21 +38,6 @@ Exit codes:
 Spec: https://github.com/ykzeng-yale/skill-md/blob/main/SPEC.md
 Generate one from a screen recording: https://skillforge.expert
 `;
-
-function findSkillFiles(target) {
-  const stat = fs.statSync(target);
-  if (stat.isFile()) return [target];
-  const out = [];
-  (function walk(dir) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/^SKILL\.md$/i.test(entry.name) || /\.skill\.md$/i.test(entry.name)) out.push(full);
-    }
-  })(target);
-  return out;
-}
 
 function main(argv) {
   const args = argv.slice(2);

@@ -1,0 +1,33 @@
+name: 'Validate SKILL.md'
+description: 'Check SKILL.md agent-skill files for problems that make an agent skip or misread steps. Zero dependencies, no install step.'
+author: 'ykzeng-yale'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'File or directory to check. Directories are walked for SKILL.md and *.skill.md.'
+    required: false
+    default: '.'
+  strict:
+    description: 'Fail the run on warnings as well as errors.'
+    required: false
+    default: 'false'
+  fail-on-warnings:
+    description: 'Alias for strict, kept for readability in workflows.'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    # No setup-node, no npm install: the validator is plain JS with zero dependencies and every
+    # GitHub runner already ships Node. Adding a toolchain step would make this slower than the
+    # thing it validates.
+    - shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_FAIL_ON_WARNINGS: ${{ inputs['fail-on-warnings'] }}
+      run: node "$GITHUB_ACTION_PATH/bin/action.js"

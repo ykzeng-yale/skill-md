@@ -34,10 +34,11 @@
     "bin",
     "lib",
     "SPEC.md",
+    "action.yml",
     "examples"
   ],
   "scripts": {
-    "test": "node test/validate.test.js && node test/convert.test.js && node test/side.test.js"
+    "test": "node test/validate.test.js && node test/convert.test.js && node test/side.test.js && node test/action.test.js"
   },
   "engines": {
     "node": ">=14"

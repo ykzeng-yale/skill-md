@@ -140,9 +140,39 @@ const res = validate(fs.readFileSync('SKILL.md', 'utf8'));
 
 ### In CI
 
+The plain command works anywhere:
+
 ```yaml
 - run: npx github:ykzeng-yale/skill-md validate ./skills --strict
 ```
+
+On GitHub, prefer the action — it reports problems as **annotations on the line of the diff**
+and writes a summary table, instead of burying them in a log nobody opens:
+
+```yaml
+name: Skills
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ykzeng-yale/skill-md@v1
+        with:
+          path: ./skills   # default: .
+          strict: 'false'  # 'true' also fails on warnings
+```
+
+No `setup-node`, no `npm install` — the validator has zero dependencies and every runner
+already ships Node, so the step adds no toolchain.
+
+Inputs: `path` (file or directory, default `.`), `strict` / `fail-on-warnings` (default `false`).
+Errors always fail the run; warnings only do under `strict`; hints are notices. A repo with no
+skill files passes, so you can add the action before writing your first skill.
+
+Why bother: the failure this catches is quiet. A hand-edit that leaves step numbering at
+1, 2, 4 still *looks* fine in review, and an agent replaying in order skips the missing step
+without complaining.
 
 ## Which agents consume it
 
