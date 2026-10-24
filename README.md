@@ -19,7 +19,30 @@ Zero dependencies, so `npx` runs instantly and it drops into CI without a toolch
 > Not yet on npm, so install straight from GitHub as shown. Once published the shorter
 > `npx skill-md validate` will work too.
 
-## Already recorded the flow in Chrome? Convert it
+## Already recorded the flow? Convert it
+
+You do not have to record anything new. If you have a **Chrome DevTools Recorder** export or a
+**Selenium IDE** project, you already did the hard part:
+
+```sh
+npx github:ykzeng-yale/skill-md convert recording.json   # Chrome Recorder export
+npx github:ykzeng-yale/skill-md convert project.side     # Selenium IDE project
+```
+
+Both run locally, upload nothing, and need no account. The source is detected by shape rather than
+file extension, so renaming does not matter. For a `.side` project with several tests, the first is
+converted and the rest are listed; pick one with `--test "Submit expense"`.
+
+What it does with a Selenium project, since a test and a skill are not the same thing:
+
+- Prefers `linkText`/`name` locators so steps read `Click "New expense"` rather than `#new-row`.
+- **Drops assertions** and says so in a Notes section. A test verifies; a skill instructs. You can
+  re-add a check as a Note if it matters.
+- Drops scaffolding (`setWindowSize`, `executeScript`, `store*`, frame switching).
+- Turns `${KEY_ENTER}` into `Press Enter`, and `label=Meals` into `Select "Meals"`.
+- Carries your command comments into the step text.
+
+## Chrome Recorder specifics
 
 Chrome ships a recorder (DevTools → **Recorder** → record → export as JSON). If you have one of
 those exports, you have a skill already — no new tooling, nothing to grant screen access to:

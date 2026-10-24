@@ -1,7 +1,7 @@
 {
   "name": "skill-md",
   "version": "0.1.0",
-  "description": "Open spec, validator, and Chrome Recorder converter for SKILL.md \u2014 a portable Markdown format that gives AI agents repeatable skills",
+  "description": "Open spec and validator for SKILL.md, plus converters from Chrome DevTools Recorder and Selenium IDE recordings",
   "keywords": [
     "skill-md",
     "ai-agent",
@@ -14,7 +14,10 @@
     "workflow",
     "chrome-devtools",
     "recorder",
-    "puppeteer"
+    "puppeteer",
+    "selenium",
+    "selenium-ide",
+    "test-automation"
   ],
   "homepage": "https://github.com/ykzeng-yale/skill-md",
   "bugs": "https://github.com/ykzeng-yale/skill-md/issues",
@@ -34,7 +37,7 @@
     "examples"
   ],
   "scripts": {
-    "test": "node test/validate.test.js && node test/convert.test.js"
+    "test": "node test/validate.test.js && node test/convert.test.js && node test/side.test.js"
   },
   "engines": {
     "node": ">=14"

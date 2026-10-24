@@ -5,21 +5,25 @@ const fs = require('fs');
 const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { convert } = require('../lib/convert.js');
+const { convertSide } = require('../lib/side.js');
 
 const USAGE = `skill-md — validate SKILL.md files (the portable format for AI agent skills)
 
 Usage:
   npx skill-md validate <file...>     Validate one or more SKILL.md files
   npx skill-md validate <dir>         Validate every SKILL.md found under a directory
-  npx skill-md convert <recording>    Chrome DevTools Recorder JSON -> SKILL.md (stdout)
+  npx skill-md convert <recording>    Chrome Recorder JSON or Selenium .side -> SKILL.md
   npx skill-md --version
   npx skill-md --help
 
 Convert options:
   --name <title>        Override the skill name/title
   --out <file>          Write to a file instead of stdout
+  --test <name>         .side only: which test to convert (default: the first)
 
-Record a flow in Chrome: DevTools -> Recorder -> record -> export as JSON.
+Sources it understands:
+  Chrome DevTools -> Recorder -> record -> export as JSON
+  Selenium IDE project files (.side, plain JSON)
 
 Options:
   --quiet     Only print problems, not per-file success lines
@@ -82,12 +86,22 @@ function main(argv) {
     }
     const nameIdx = args.indexOf('--name');
     const outIdx = args.indexOf('--out');
+    const testIdx = args.indexOf('--test');
+    const name = nameIdx !== -1 ? args[nameIdx + 1] : undefined;
+    // Detect by shape rather than extension: a .side project has a tests[] array, a Chrome
+    // Recorder export has steps[]. Files get renamed; their contents do not change.
+    const isSide = Array.isArray(recording.tests);
     let res;
     try {
-      res = convert(recording, { name: nameIdx !== -1 ? args[nameIdx + 1] : undefined });
+      res = isSide
+        ? convertSide(recording, { name, test: testIdx !== -1 ? args[testIdx + 1] : undefined })
+        : convert(recording, { name });
     } catch (err) {
       process.stderr.write(`convert: ${err.message}\n`);
       return 2;
+    }
+    if (isSide && res.stats.available && res.stats.available.length > 1 && testIdx === -1) {
+      process.stderr.write(`convert: project has ${res.stats.available.length} tests, converted "${res.stats.test}". Use --test to pick another: ${res.stats.available.join(', ')}\n`);
     }
     // Never emit a file our own validator would reject.
     const check = validate(res.markdown);
@@ -98,10 +112,10 @@ function main(argv) {
     }
     if (outIdx !== -1 && args[outIdx + 1]) {
       fs.writeFileSync(args[outIdx + 1], res.markdown);
-      process.stderr.write(`wrote ${args[outIdx + 1]} — ${res.stats.kept} steps (${res.stats.dropped} browser-level steps omitted)\n`);
+      process.stderr.write(`wrote ${args[outIdx + 1]} — ${res.stats.kept} steps (${res.stats.dropped} omitted${res.stats.assertions ? `, ${res.stats.assertions} assertions dropped` : ''})\n`);
     } else {
       process.stdout.write(res.markdown);
-      process.stderr.write(`${res.stats.kept} steps (${res.stats.dropped} browser-level steps omitted)\n`);
+      process.stderr.write(`${res.stats.kept} steps (${res.stats.dropped} omitted${res.stats.assertions ? `, ${res.stats.assertions} assertions dropped` : ''})\n`);
     }
     return 0;
   }
