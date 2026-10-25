@@ -116,11 +116,15 @@ test('annotations carry the file path so they land on the right diff', () => {
   assert.ok(r.out.includes('nested'), 'annotation should reference the nested path');
 });
 
+// A duplicate section is warning-only. (An invalid `name` is an ERROR now, per the spec, so it
+// cannot be used to exercise warning behaviour.)
+const WARNS_ONLY = ['---', 'name: dupes', 'description: Has a duplicated section heading', '---', '',
+  '# Dupes', '', '## Notes', '', 'a', '', '## Notes', '', 'b', '',
+  '## Workflow Steps', '', '### Step 1: Open it', '', 'Navigate to example.com.', ''].join('\n');
+
 test('warnings do not fail the run by default', () => {
   const d = mkdir();
-  // Valid, but "Bad Name" is not slug-safe -> warning, and no H1 -> warning.
-  fs.writeFileSync(path.join(d, 'SKILL.md'),
-    ['---', 'name: Bad Name', 'description: ok', '---', '## Workflow Steps', '', '1. Click Save'].join('\n'));
+  fs.writeFileSync(path.join(d, 'SKILL.md'), WARNS_ONLY);
   const r = run(d);
   assert.strictEqual(r.code, 0, r.out);
   assert.ok(/^::warning/m.test(r.out), 'warnings should still be annotated');
@@ -128,8 +132,7 @@ test('warnings do not fail the run by default', () => {
 
 test('strict turns warnings into a failure', () => {
   const d = mkdir();
-  fs.writeFileSync(path.join(d, 'SKILL.md'),
-    ['---', 'name: Bad Name', 'description: ok', '---', '## Workflow Steps', '', '1. Click Save'].join('\n'));
+  fs.writeFileSync(path.join(d, 'SKILL.md'), WARNS_ONLY);
   assert.strictEqual(run(d, { INPUT_STRICT: 'true' }).code, 1);
   assert.strictEqual(run(d, { INPUT_FAIL_ON_WARNINGS: 'true' }).code, 1);
 });

@@ -13,6 +13,7 @@
 // Exit 0 when everything passed, 1 otherwise.
 
 const fs = require('fs');
+const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { findSkillFiles } = require('../lib/find.js');
 
@@ -74,7 +75,8 @@ function main() {
   let totalWarnings = 0;
 
   for (const file of files) {
-    const res = validate(fs.readFileSync(file, 'utf8'));
+    const res = validate(fs.readFileSync(file, 'utf8'),
+      { dirName: path.basename(path.dirname(path.resolve(file))), fileName: path.basename(file) });
     for (const e of res.errors) annotate('error', file, e.line, e.msg);
     for (const w of res.warnings) annotate('warning', file, w.line, w.msg);
     // Hints are advisory; as notices they stay visible without colouring the run.

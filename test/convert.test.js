@@ -110,12 +110,15 @@ test('collects navigated hosts into apps and prerequisites', () => {
   assert.ok(/- Access to mail\.google\.com/.test(out.markdown));
 });
 
-test('a recording with no usable steps still yields a valid-shaped file', () => {
+test('a recording with no usable steps is reported, not papered over', () => {
   const out = convert(rec([{ type: 'setViewport' }, { type: 'close' }]));
   assert.strictEqual(out.stats.kept, 0);
-  // No steps means the validator should reject it — better that convert is honest about
-  // producing nothing useful than that it invent steps.
-  assert.strictEqual(validate(out.markdown).ok, false);
+  // A stepless file is spec-conformant (the Agent Skills body has no format requirements), so
+  // the validator no longer rejects it — but it does flag the contradiction of a declared steps
+  // section with nothing in it, and the CLI refuses to write the file at all. Better that
+  // convert is honest about producing nothing useful than that it invent steps.
+  const res = validate(out.markdown);
+  assert.ok(res.warnings.some(w => /no numbered steps/.test(w.msg)), JSON.stringify(res.warnings));
 });
 
 test('honours an explicit name override', () => {

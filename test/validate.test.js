@@ -87,16 +87,30 @@ test('rejects missing required frontmatter keys', () => {
   assert.ok(r.errors.some(e => /description/.test(e.msg)));
 });
 
-test('rejects a skill with no steps', () => {
+// The Agent Skills spec says the body has NO format restrictions, so neither of these is a
+// spec violation. An empty declared steps section is still a contradiction worth warning about;
+// a body with no steps at all is merely a different kind of skill.
+test('an empty steps section warns but does not fail', () => {
   const r = validate('---\nname: x\ndescription: y\n---\n\n## Workflow Steps\n\nnothing here\n');
-  assert.strictEqual(r.ok, false);
-  assert.ok(r.errors.some(e => /no steps/.test(e.msg)));
+  assert.strictEqual(r.ok, true, JSON.stringify(r.errors));
+  assert.ok(r.warnings.some(w => /no numbered steps/.test(w.msg)), JSON.stringify(r.warnings));
 });
 
-test('rejects a missing Workflow Steps section', () => {
+test('a skill with no steps section is valid (prose and reference skills are conformant)', () => {
   const r = validate('---\nname: x\ndescription: y\n---\n\n## Description\n\nhi\n');
-  assert.strictEqual(r.ok, false);
-  assert.ok(r.errors.some(e => /Workflow Steps/.test(e.msg)));
+  assert.strictEqual(r.ok, true, JSON.stringify(r.errors));
+  assert.ok(r.hints.some(h => /no numbered steps/.test(h.msg)));
+});
+
+test('the spec\'s own minimal example validates', () => {
+  const r = validate('---\nname: skill-name\ndescription: A description of what this skill does and when to use it.\n---\n');
+  assert.strictEqual(r.ok, true, JSON.stringify(r.errors));
+});
+
+test('an arbitrary body heading is not flagged — the spec allows any body', () => {
+  const r = validate('---\nname: x\ndescription: A long enough description saying what and when\n---\n\n# T\n\n## Anything At All\n\nprose\n');
+  assert.strictEqual(r.ok, true);
+  assert.ok(!r.hints.some(h => /unrecognized section/.test(h.msg)), 'should not second-guess body structure');
 });
 
 test('accepts "## Steps" as an alias', () => {
@@ -116,9 +130,50 @@ test('warns on non-sequential step numbers', () => {
   assert.ok(r.warnings.some(w => /sequential/.test(w.msg)));
 });
 
-test('warns on a non-slug name', () => {
+// The spec's name rules are normative and agents use the name as a directory, so these are
+// errors, not style warnings. Each case below is quoted as invalid by agentskills.io.
+test('rejects a name with uppercase or spaces', () => {
   const r = validate('---\nname: My Skill\ndescription: y\n---\n\n# T\n\n## Workflow Steps\n\n1. Click save\n');
-  assert.ok(r.warnings.some(w => /slug-safe/.test(w.msg)));
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /lowercase letters, digits and hyphens/.test(e.msg)), JSON.stringify(r.errors));
+});
+
+test('rejects a name starting or ending with a hyphen', () => {
+  assert.strictEqual(validate('---\nname: -pdf\ndescription: y\n---\n').ok, false);
+  assert.strictEqual(validate('---\nname: pdf-\ndescription: y\n---\n').ok, false);
+});
+
+test('rejects consecutive hyphens in a name', () => {
+  const r = validate('---\nname: pdf--processing\ndescription: y\n---\n');
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /consecutive hyphens/.test(e.msg)));
+});
+
+test('rejects a name over 64 characters', () => {
+  const r = validate('---\nname: ' + 'a'.repeat(65) + '\ndescription: y\n---\n');
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /at most 64/.test(e.msg)));
+});
+
+test('rejects a description over 1024 characters', () => {
+  const r = validate('---\nname: x\ndescription: ' + 'd'.repeat(1025) + '\n---\n');
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /at most 1024/.test(e.msg)));
+});
+
+test('rejects an over-length or empty compatibility field', () => {
+  assert.strictEqual(validate('---\nname: x\ndescription: y\ncompatibility: ' + 'c'.repeat(501) + '\n---\n').ok, false);
+  assert.strictEqual(validate('---\nname: x\ndescription: y\ncompatibility:\n---\n').ok, false);
+});
+
+test('accepts the spec optional fields', () => {
+  const r = validate('---\nname: pdf-processing\ndescription: Extract PDF text, fill forms, merge files. Use when handling PDFs.\nlicense: Apache-2.0\ncompatibility: Requires Python 3.14+\n---\n\nRun scripts/extract.py\n');
+  assert.strictEqual(r.ok, true, JSON.stringify(r.errors));
+});
+
+test('warns when name does not match the parent directory', () => {
+  const r = validate('---\nname: other-name\ndescription: y\n---\n', { dirName: 'pdf-processing', fileName: 'SKILL.md' });
+  assert.ok(r.warnings.some(w => /parent directory/.test(w.msg)), JSON.stringify(r.warnings));
 });
 
 test('warns on a duplicate section', () => {

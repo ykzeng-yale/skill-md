@@ -2,6 +2,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { convert } = require('../lib/convert.js');
 const { convertSide } = require('../lib/side.js');
@@ -88,6 +89,13 @@ function main(argv) {
     if (isSide && res.stats.available && res.stats.available.length > 1 && testIdx === -1) {
       process.stderr.write(`convert: project has ${res.stats.available.length} tests, converted "${res.stats.test}". Use --test to pick another: ${res.stats.available.join(', ')}\n`);
     }
+    // A recording that yielded nothing usable must fail loudly rather than write a skill with no
+    // steps. The validator no longer treats steplessness as an error (a prose skill is
+    // conformant), so convert enforces it here instead — for a CONVERSION it really is a failure.
+    if (res.stats.kept === 0) {
+      process.stderr.write('convert: no usable steps in that recording — refusing to write an empty skill\n');
+      return 1;
+    }
     // Never emit a file our own validator would reject.
     const check = validate(res.markdown);
     if (!check.ok) {
@@ -135,7 +143,8 @@ function main(argv) {
 
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');
-    const res = validate(text);
+    // Context for the spec rule that a skill's name must match its parent directory.
+    const res = validate(text, { dirName: path.basename(path.dirname(path.resolve(file))), fileName: path.basename(file) });
     results.push({ file, ...res });
 
     const bad = !res.ok || (strict && res.warnings.length > 0);

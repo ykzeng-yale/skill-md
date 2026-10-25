@@ -3,8 +3,13 @@
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
 
-Validator and open spec for **SKILL.md** — a portable Markdown format that gives AI agents
-repeatable skills.
+A validator for **SKILL.md** — the [Agent Skills](https://agentskills.io/specification) format —
+plus converters that turn recordings you already have into one.
+
+Conformance is the point: errors are **spec violations only**, so a valid Claude, Codex or Cursor
+skill passes here. Our opinionated checks for *recorded workflow* skills (gapped step numbering,
+missing action verbs, no Prerequisites) are warnings and hints, never grounds for calling a
+conformant file invalid. Use `--strict` if you want them enforced.
 
 ```sh
 npx github:ykzeng-yale/skill-md validate SKILL.md

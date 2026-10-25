@@ -1,7 +1,7 @@
 {
   "name": "skill-md",
-  "version": "0.1.0",
-  "description": "Open spec and validator for SKILL.md, plus converters from Chrome DevTools Recorder and Selenium IDE recordings",
+  "version": "1.1.0",
+  "description": "Validator for SKILL.md (the Agent Skills format) plus converters from Chrome DevTools Recorder and Selenium IDE recordings",
   "keywords": [
     "skill-md",
     "ai-agent",
@@ -17,7 +17,10 @@
     "puppeteer",
     "selenium",
     "selenium-ide",
-    "test-automation"
+    "test-automation",
+    "agent-skills-spec",
+    "agentskills",
+    "validator"
   ],
   "homepage": "https://github.com/ykzeng-yale/skill-md",
   "bugs": "https://github.com/ykzeng-yale/skill-md/issues",

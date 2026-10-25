@@ -1,6 +1,18 @@
-# SKILL.md Specification
+# SKILL.md — workflow conventions
 
-Version 0.1 · status: draft, in production use
+> **This is not the normative spec.** The SKILL.md format is specified by the Agent Skills
+> project at **<https://agentskills.io/specification>**, which defines the required frontmatter
+> (`name`, `description`), the optional fields, the skill directory layout, and states that the
+> Markdown body has **no format restrictions**. Their reference validator is `skills-ref`.
+>
+> This document describes the *conventions* SkillForge emits for skills generated from a screen
+> recording — a `## Workflow Steps` section with `### Step N:` headings — and what our validator
+> checks beyond conformance. Following these conventions is optional and no agent requires them;
+> they exist because a recorded procedure replays more reliably when its steps are explicit and
+> numbered. Earlier versions of this file described these conventions as requirements. That was
+> wrong, and the validator was corrected to match the real spec.
+
+Conventions version 0.2 · normative spec: agentskills.io
 
 A **SKILL.md** file describes one repeatable task precisely enough that an AI agent can perform
 it again. It is plain Markdown with YAML frontmatter, so it is readable by a human, diffable in
