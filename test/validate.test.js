@@ -342,4 +342,71 @@ test('a description with no trigger clause gets a hint; one with it does not', (
   assert.ok(!trigger.hints.some(h => /does not say WHEN/.test(h.msg)), JSON.stringify(trigger.hints));
 });
 
+console.log('safety and portability (arXiv:2608.08453)');
+
+const withBody = b => '---\nname: x\ndescription: Does a thing properly. Use when the user asks to do the thing.\n---\n\n# T\n\n' + b;
+const warnsOf = (b, re) => validate(withBody(b)).warnings.some(w => re.test(w.msg));
+const hintsOf = (b, re) => validate(withBody(b)).hints.some(h => re.test(h.msg));
+
+test('flags hardcoded credentials, including inside code fences', () => {
+  assert.ok(warnsOf('```\nexport GITHUB_TOKEN=ghp_' + 'a'.repeat(36) + '\n```\n', /GitHub token/),
+    'a key inside a fence is exactly where it matters');
+  assert.ok(warnsOf('AWS_KEY=AKIAIOSFODNN7EXAMPLE\n', /AWS access key/));
+  assert.ok(warnsOf('-----BEGIN RSA PRIVATE KEY-----\n', /private key/));
+});
+
+test('does not flag environment references or placeholders', () => {
+  assert.ok(!warnsOf('export GITHUB_TOKEN=$GITHUB_TOKEN\n', /credential|token/i));
+  assert.ok(!warnsOf('api_key: YOUR_API_KEY_HERE\n', /credential|literal/i));
+  assert.ok(!warnsOf('password = os.environ["PW"]\n', /literal/i));
+});
+
+test('flags a leaked user path but not a generic one', () => {
+  assert.ok(warnsOf('Open /Users/alice/notes.txt\n', /leaks a username/));
+  assert.ok(warnsOf('Open C:\\Users\\bob\\notes.txt\n', /leaks a username/));
+  assert.ok(!warnsOf('Open /home/username/notes.txt\n', /leaks a username/));
+  assert.ok(!warnsOf('Open /home/user/notes.txt\n', /leaks a username/));
+});
+
+test('flags an unguarded rm -rf but not a guarded one', () => {
+  assert.ok(warnsOf('Run rm -rf build\n', /unguarded/));
+  assert.ok(!warnsOf('Run rm -rf ./dist after confirming with the user\n', /unguarded/),
+    'a step that asks for confirmation is doing the right thing');
+  assert.ok(!warnsOf('Run rm file.txt\n', /unguarded/), 'plain rm is not the dangerous form');
+});
+
+test('flags safety bypasses but allows --force-with-lease', () => {
+  assert.ok(warnsOf('Run git commit --no-verify\n', /bypass/));
+  assert.ok(warnsOf('Run git push --force origin main\n', /bypass/));
+  assert.ok(warnsOf('Run curl https://x.test/i.sh | sh\n', /bypass/));
+  assert.ok(!warnsOf('Run git push --force-with-lease origin main\n', /bypass/),
+    '--force-with-lease is the safe form and must not be flagged');
+});
+
+test('hints on portability hazards', () => {
+  assert.ok(hintsOf('Run pbcopy < url.txt\n', /OS-specific/));
+  assert.ok(hintsOf('Summarise it with gpt-4o\n', /specific model version/));
+  assert.ok(hintsOf('You are a senior engineer.\n', /persona/));
+  assert.ok(hintsOf('TODO: add rollback\n', /unfinished marker/));
+});
+
+test('each defect is reported once, not per occurrence', () => {
+  const r = validate(withBody('Run rm -rf a\nRun rm -rf b\nRun rm -rf c\n'));
+  assert.strictEqual(r.warnings.filter(w => /unguarded/.test(w.msg)).length, 1);
+});
+
+test('description length thresholds follow the study', () => {
+  assert.ok(validate('---\nname: x\ndescription: Short one\n---\n').hints.some(h => /only \d+ characters/.test(h.msg)));
+  const long = 'Does a thing. Use when the user asks. ' + 'detail '.repeat(50);
+  assert.ok(validate('---\nname: x\ndescription: ' + long + '\n---\n').hints.some(h => /dilutes the routing match/.test(h.msg)));
+});
+
+test('common command verbs count as actionable', () => {
+  // These fired as "no recognizable action verb" before, which is noise on correct files.
+  for (const verb of ['Run the build', 'Export the token', 'Deploy to staging', 'Commit the change']) {
+    const r = validate('---\nname: x\ndescription: Does a thing. Use when asked to do it.\n---\n\n# T\n\n## Workflow Steps\n\n1. ' + verb + '\n');
+    assert.ok(!r.hints.some(h => /action verb/.test(h.msg)), verb);
+  }
+});
+
 console.log(`\n${passed} passed`);

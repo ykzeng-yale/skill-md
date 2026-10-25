@@ -1,6 +1,6 @@
 {
   "name": "skill-md",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Validator for SKILL.md (the Agent Skills format) plus converters from Chrome DevTools Recorder and Selenium IDE recordings",
   "keywords": [
     "skill-md",
@@ -20,7 +20,10 @@
     "test-automation",
     "agent-skills-spec",
     "agentskills",
-    "validator"
+    "validator",
+    "security",
+    "linter",
+    "secret-detection"
   ],
   "homepage": "https://github.com/ykzeng-yale/skill-md",
   "bugs": "https://github.com/ykzeng-yale/skill-md/issues",

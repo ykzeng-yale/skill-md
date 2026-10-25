@@ -43,6 +43,32 @@ every one of them is quiet — no error, no warning, the skill simply never fire
 The BOM one is worth singling out: the obvious message is "missing YAML frontmatter", which
 sends you looking at frontmatter that is plainly correct. It now says what is actually wrong.
 
+### It checks safety and portability
+
+These checks come from the defect taxonomy in [*What Keeps Agent Skills from Being Reusable?
+Evidence from 138K SKILL.md Files*](https://arxiv.org/abs/2608.08453), which found that **91.8%
+of real skills carry at least one detected defect**. We implement the subset where a false
+positive is unlikely and the consequence is real:
+
+- **Hardcoded credentials** (5.8% of skills in the study) — AWS keys, GitHub/Slack/OpenAI/
+  Anthropic tokens, private keys, and `password = "literal"` assignments. Skills get shared and
+  committed, so a key in one travels. `$ENV_VAR`, `os.environ` and placeholders are not flagged.
+- **Leaked user paths** (5.8%) — `/Users/alice/...` both exposes a username and cannot exist on
+  anyone else's machine. Generic stand-ins like `/home/username` are fine.
+- **Unguarded destructive commands** (4.7%) — `rm -rf` with no confirmation step. A step that
+  already tells the agent to confirm first is *not* flagged; "unguarded" is the point.
+- **Safety bypasses** — `--no-verify`, `git push --force`, `curl ... | sh`. `--force-with-lease`
+  is the safe form and is left alone.
+- **Portability hints** — OS-only commands (`pbcopy`), hardcoded model names (they get retired),
+  persona redefinition ("You are a..."), and `TODO`/`FIXME` an agent will follow as written.
+
+These are warnings and hints, so they never call a conformant file invalid — use `--strict` to
+fail CI on them.
+
+One check from the study we deliberately skip: "name repeated as H1" (44.3%). The spec is
+indifferent, the harm is cosmetic, and a hint firing on half of all files teaches people to
+ignore the output.
+
 ```sh
 npx github:ykzeng-yale/skill-md validate SKILL.md
 ```
