@@ -127,4 +127,12 @@ test('honours an explicit name override', () => {
   assert.ok(/^# My Custom Flow$/m.test(out.markdown));
 });
 
+test('the description is a trigger, not a summary', () => {
+  const out = convert(rec([{ type: 'navigate', url: 'https://example.com/' }], 'File the VAT return'));
+  const desc = /^description: (.*)$/m.exec(out.markdown)[1];
+  assert.ok(/Use when the user asks to file the VAT return/.test(desc), desc);
+  // An agent matches the request against this field, so a human-style summary never fires.
+  assert.ok(validate(out.markdown).hints.every(h => !/does not say WHEN/.test(h.msg)));
+});
+
 console.log(`\n${passed} passed`);

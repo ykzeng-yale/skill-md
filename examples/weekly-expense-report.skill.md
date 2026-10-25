@@ -1,6 +1,6 @@
 ---
 name: weekly-expense-report
-description: Copy last week's card charges from the bank export into the Finance Notion DB
+description: File last week's receipts from Drive into the Notion finance database. Use when the user asks to file expenses, do the weekly expense report, or log receipts.
 apps: [Chrome, Notion]
 ---
 

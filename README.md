@@ -27,6 +27,22 @@ That is the failure worth catching. A dangling path survives code review — it 
 file — and the skill breaks mid-task when the agent tries to open it. Bare paths inside fenced
 code blocks are ignored, since those are usually illustrative rather than real references.
 
+### It catches the reasons skills silently never load
+
+Spec conformance is not the same as *working*. These are the failures people actually hit, and
+every one of them is quiet — no error, no warning, the skill simply never fires:
+
+| What | Why it breaks |
+| --- | --- |
+| `skill.md` / `Skill.MD` | Agents look for exactly `SKILL.md`. Wrong case is never discovered. |
+| `my-skill/my-skill/SKILL.md` | Double nesting after unzipping. Discovery finds nothing. |
+| A UTF-8 BOM | The file no longer starts with `---`, so the frontmatter is not read. |
+| A tab in the frontmatter | YAML forbids tabs. The block fails to parse and the skill is skipped. |
+| A description written for a human | The description is a **trigger**, matched against the user's request. "This skill helps with READMEs" rarely fires; "Use when the user asks to write or update a README" does. |
+
+The BOM one is worth singling out: the obvious message is "missing YAML frontmatter", which
+sends you looking at frontmatter that is plainly correct. It now says what is actually wrong.
+
 ```sh
 npx github:ykzeng-yale/skill-md validate SKILL.md
 ```

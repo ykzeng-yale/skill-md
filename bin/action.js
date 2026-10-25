@@ -77,6 +77,7 @@ function main() {
   for (const file of files) {
     const res = validate(fs.readFileSync(file, 'utf8'), {
       dirName: path.basename(path.dirname(path.resolve(file))),
+      parentDirName: path.basename(path.dirname(path.dirname(path.resolve(file)))),
       fileName: path.basename(file),
       files: listSkillDirFiles(file),
     });

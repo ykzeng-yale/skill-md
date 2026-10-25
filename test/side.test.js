@@ -139,4 +139,16 @@ test('steps stay sequential after drops', () => {
   assert.strictEqual(validate(out.markdown).ok, true);
 });
 
+test('the description is a trigger built from the test name', () => {
+  const out = convertSide(proj([
+    { command: 'open', target: '/x' },
+    { command: 'click', target: 'linkText=Go', targets: [['linkText=Go', 'linkText']] },
+  ], { tests: [{ id: 't1', name: 'File the VAT return', commands: [
+    { command: 'open', target: '/x' },
+    { command: 'click', target: 'linkText=Go', targets: [['linkText=Go', 'linkText']] },
+  ] }] }));
+  const desc = /^description: (.*)$/m.exec(out.markdown)[1];
+  assert.ok(/Use when the user asks to file the VAT return/.test(desc), desc);
+});
+
 console.log(`\n${passed} passed`);

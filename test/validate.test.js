@@ -288,4 +288,58 @@ test('does not strip a trailing paren that is part of a markdown link path', () 
   assert.deepStrictEqual(refs.map(r => r.path), ['references/REF.md']);
 });
 
+console.log('real-world loading failures');
+
+test('a UTF-8 BOM is reported as a BOM, not as missing frontmatter', () => {
+  const r = validate('﻿---\nname: x\ndescription: Does a thing. Use when the user asks.\n---\n\n# T\n');
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /byte-order mark/.test(e.msg)), JSON.stringify(r.errors));
+  // The old message sent you hunting for frontmatter that was plainly there.
+  assert.ok(!r.errors.some(e => /missing YAML frontmatter/.test(e.msg)), JSON.stringify(r.errors));
+});
+
+test('a tab in the frontmatter is an error (YAML forbids it, agents skip silently)', () => {
+  const r = validate('---\nname: x\ndescription: Does a thing. Use when asked.\nmetadata:\n\tauthor: me\n---\n\n# T\n');
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some(e => /tab/.test(e.msg)), JSON.stringify(r.errors));
+});
+
+test('a frontmatter line that is not key: value warns', () => {
+  const r = validate('---\nname: x\ndescription: Does a thing. Use when asked.\njust some text\n---\n\n# T\n');
+  assert.ok(r.warnings.some(w => /not a "key: value" pair/.test(w.msg)), JSON.stringify(r.warnings));
+});
+
+test('a list item in the frontmatter does not trip the key: value check', () => {
+  const r = validate('---\nname: x\ndescription: Does a thing. Use when asked.\ntags:\n  - one\n  - two\n---\n\n# T\n');
+  assert.ok(!r.warnings.some(w => /key: value/.test(w.msg)), JSON.stringify(r.warnings));
+});
+
+test('a wrong-case filename warns — agents look for exactly SKILL.md', () => {
+  const body = '---\nname: my-skill\ndescription: Does a thing. Use when the user asks.\n---\n\n# T\n';
+  assert.ok(validate(body, { fileName: 'skill.md' }).warnings.some(w => /exactly "SKILL\.md"/.test(w.msg)));
+  assert.ok(validate(body, { fileName: 'Skill.MD' }).warnings.some(w => /exactly "SKILL\.md"/.test(w.msg)));
+  // Our own convention is deliberate and must not be flagged.
+  assert.ok(!validate(body, { fileName: 'invoices.skill.md' }).warnings.some(w => /exactly/.test(w.msg)));
+  assert.ok(!validate(body, { fileName: 'SKILL.md' }).warnings.some(w => /exactly/.test(w.msg)));
+});
+
+test('a double-nested skill directory warns', () => {
+  const r = validate('---\nname: my-skill\ndescription: Does a thing. Use when asked.\n---\n\n# T\n',
+    { fileName: 'SKILL.md', dirName: 'my-skill', parentDirName: 'my-skill' });
+  assert.ok(r.warnings.some(w => /double-nested/.test(w.msg)), JSON.stringify(r.warnings));
+});
+
+test('a normal nesting does not warn about double-nesting', () => {
+  const r = validate('---\nname: my-skill\ndescription: Does a thing. Use when asked.\n---\n\n# T\n',
+    { fileName: 'SKILL.md', dirName: 'my-skill', parentDirName: 'skills' });
+  assert.ok(!r.warnings.some(w => /double-nested/.test(w.msg)));
+});
+
+test('a description with no trigger clause gets a hint; one with it does not', () => {
+  const human = validate('---\nname: x\ndescription: This skill helps with generating README files for you\n---\n\n# T\n');
+  assert.ok(human.hints.some(h => /does not say WHEN/.test(h.msg)), JSON.stringify(human.hints));
+  const trigger = validate('---\nname: x\ndescription: Generates README files. Use when the user asks to write or update a README.\n---\n\n# T\n');
+  assert.ok(!trigger.hints.some(h => /does not say WHEN/.test(h.msg)), JSON.stringify(trigger.hints));
+});
+
 console.log(`\n${passed} passed`);

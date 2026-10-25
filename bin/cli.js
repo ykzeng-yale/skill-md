@@ -147,6 +147,7 @@ function main(argv) {
     // directory, and referenced scripts/ and references/ files must actually exist.
     const res = validate(text, {
       dirName: path.basename(path.dirname(path.resolve(file))),
+      parentDirName: path.basename(path.dirname(path.dirname(path.resolve(file)))),
       fileName: path.basename(file),
       files: listSkillDirFiles(file),
     });
