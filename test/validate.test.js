@@ -466,4 +466,15 @@ test('a placeholder link target is not treated as a file path', () => {
   assert.ok(!r.warnings.some(w => /not in the skill directory/.test(w.msg)), JSON.stringify(r.warnings));
 });
 
+test('accepts "## Execution Plan" as a steps section', () => {
+  // Real-world shape: SkillForge's own stored skills use this heading, and our validator was
+  // reporting "0 steps" for files that plainly had steps. Found by validating production output.
+  const r = validate(['---', 'name: x', 'description: Does a thing. Use when the user asks to do it.', '---', '',
+    '# T', '', '## Execution Plan', '', 'This skill consists of 2 steps.', '',
+    '### Step 1: Search', '', 'Click the search bar.', '',
+    '### Step 2: Export', '', 'Click export.', ''].join('\n'));
+  assert.strictEqual(r.ok, true, JSON.stringify(r.errors));
+  assert.strictEqual(r.stats.steps, 2, 'steps under Execution Plan must be counted');
+});
+
 console.log(`\n${passed} passed`);

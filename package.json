@@ -1,6 +1,6 @@
 {
   "name": "skill-md",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Validator for SKILL.md (the Agent Skills format) plus converters from Chrome DevTools Recorder and Selenium IDE recordings",
   "keywords": [
     "skill-md",
