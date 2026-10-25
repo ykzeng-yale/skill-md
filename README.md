@@ -43,6 +43,16 @@ every one of them is quiet — no error, no warning, the skill simply never fire
 The BOM one is worth singling out: the obvious message is "missing YAML frontmatter", which
 sends you looking at frontmatter that is plainly correct. It now says what is actually wrong.
 
+### Validated against published skills
+
+Run across [anthropics/skills](https://github.com/anthropics/skills) and
+[obra/superpowers](https://github.com/obra/superpowers) — 35 real files, 34 valid, no skill
+wrongly reported invalid. That run found **six false positives in this tool** (unparsed YAML
+block scalars, `rm -f` treated as destructive, nested paths flagged, parent-relative references
+called missing, placeholder link targets, and a hint that fired on 35 of 35 files). All fixed
+with regression tests. See [CORPUS.md](CORPUS.md) for the details and for the three genuine
+findings in the skills themselves.
+
 ### It checks safety and portability
 
 These checks come from the defect taxonomy in [*What Keeps Agent Skills from Being Reusable?
