@@ -271,4 +271,21 @@ test('hints when SKILL.md exceeds the recommended 500 lines', () => {
   assert.ok(validate(long).hints.some(h => /under 500/.test(h.msg)));
 });
 
+test('strips sentence punctuation from a bare path', () => {
+  // "Run scripts/merge.py." must not look for a file literally named "merge.py."
+  const refs = collectFileReferences('Run scripts/extract.py then scripts/merge.py.\n', 0);
+  assert.deepStrictEqual(refs.map(r => r.path).sort(), ['scripts/extract.py', 'scripts/merge.py']);
+});
+
+test('a present file referenced at the end of a sentence does not warn', () => {
+  const body = '---\nname: x\ndescription: A description long enough to be useful here\n---\n\n# T\n\nRun scripts/merge.py.\n';
+  const r = validate(body, { files: ['SKILL.md', 'scripts/merge.py'] });
+  assert.ok(!r.warnings.some(w => /not in the skill directory/.test(w.msg)), JSON.stringify(r.warnings));
+});
+
+test('does not strip a trailing paren that is part of a markdown link path', () => {
+  const refs = collectFileReferences('[a](references/REF.md)\n', 0);
+  assert.deepStrictEqual(refs.map(r => r.path), ['references/REF.md']);
+});
+
 console.log(`\n${passed} passed`);
