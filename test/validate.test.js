@@ -4,7 +4,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { validate, parseFrontmatter } = require('../lib/validate.js');
+const { validate, collectFileReferences, parseFrontmatter } = require('../lib/validate.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -224,6 +224,51 @@ test('still hints when neither heading nor prose has a verb', () => {
     '### Step 1: The quarterly numbers\n\nSomething vague about them.\n'
   );
   assert.ok(r.hints.some(h => /action verb/.test(h.msg)));
+});
+
+
+console.log('file references');
+
+test('ignores external URLs, anchors and absolute paths', () => {
+  const refs = collectFileReferences('See [docs](https://example.com/a) and [top](#intro) and [abs](/etc/passwd)\n', 0);
+  assert.deepStrictEqual(refs, []);
+});
+
+test('finds markdown links and bare scripts/ paths', () => {
+  const refs = collectFileReferences('See [guide](references/REFERENCE.md).\n\nRun scripts/extract.py now.\n', 0);
+  assert.deepStrictEqual(refs.map(r => r.path).sort(), ['references/REFERENCE.md', 'scripts/extract.py']);
+});
+
+test('does not read bare paths inside a fenced code block', () => {
+  // The spec's own example shows scripts/extract.py inside a fence; treating that as a reference
+  // would warn about illustrative snippets.
+  const refs = collectFileReferences('```\nscripts/illustrative.py\n```\n', 0);
+  assert.deepStrictEqual(refs, []);
+});
+
+test('warns when a referenced file is absent, and stays quiet when present', () => {
+  const body = '---\nname: x\ndescription: A description long enough to be useful here\n---\n\n# T\n\nRun scripts/go.py\n';
+  const missing = validate(body, { files: ['SKILL.md'] });
+  assert.ok(missing.warnings.some(w => /scripts\/go\.py/.test(w.msg)), JSON.stringify(missing.warnings));
+  const present = validate(body, { files: ['SKILL.md', 'scripts/go.py'] });
+  assert.ok(!present.warnings.some(w => /scripts\/go\.py/.test(w.msg)), JSON.stringify(present.warnings));
+});
+
+test('does not check references at all when no file list is supplied', () => {
+  // A pasted file in the browser has no directory context; warning there would be wrong.
+  const r = validate('---\nname: x\ndescription: A description long enough to be useful here\n---\n\n# T\n\nRun scripts/go.py\n');
+  assert.ok(!r.warnings.some(w => /not in the skill directory/.test(w.msg)));
+});
+
+test('hints on references nested more than one level deep', () => {
+  const r = validate('---\nname: x\ndescription: A description long enough to be useful here\n---\n\n# T\n\nSee [d](references/deep/nested.md)\n',
+    { files: ['SKILL.md', 'references/deep/nested.md'] });
+  assert.ok(r.hints.some(h => /more than one level deep/.test(h.msg)), JSON.stringify(r.hints));
+});
+
+test('hints when SKILL.md exceeds the recommended 500 lines', () => {
+  const long = '---\nname: x\ndescription: A description long enough to be useful here\n---\n\n# T\n' + 'prose\n'.repeat(520);
+  assert.ok(validate(long).hints.some(h => /under 500/.test(h.msg)));
 });
 
 console.log(`\n${passed} passed`);

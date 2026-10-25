@@ -6,7 +6,7 @@ const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { convert } = require('../lib/convert.js');
 const { convertSide } = require('../lib/side.js');
-const { findSkillFiles } = require('../lib/find.js');
+const { findSkillFiles, listSkillDirFiles } = require('../lib/find.js');
 
 const USAGE = `skill-md — validate SKILL.md files (the portable format for AI agent skills)
 
@@ -143,8 +143,13 @@ function main(argv) {
 
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');
-    // Context for the spec rule that a skill's name must match its parent directory.
-    const res = validate(text, { dirName: path.basename(path.dirname(path.resolve(file))), fileName: path.basename(file) });
+    // Context for the spec rules we can only check on disk: the name must match the parent
+    // directory, and referenced scripts/ and references/ files must actually exist.
+    const res = validate(text, {
+      dirName: path.basename(path.dirname(path.resolve(file))),
+      fileName: path.basename(file),
+      files: listSkillDirFiles(file),
+    });
     results.push({ file, ...res });
 
     const bad = !res.ok || (strict && res.warnings.length > 0);

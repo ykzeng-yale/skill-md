@@ -11,6 +11,22 @@ skill passes here. Our opinionated checks for *recorded workflow* skills (gapped
 missing action verbs, no Prerequisites) are warnings and hints, never grounds for calling a
 conformant file invalid. Use `--strict` if you want them enforced.
 
+### It checks the whole skill directory, not just the file
+
+The spec organises a skill as a directory — `SKILL.md` plus optional `scripts/`, `references/`
+and `assets/` — and says to reference those files by relative path. So when you point it at a
+file on disk, it also checks that **the files you reference are actually there**:
+
+```
+✓ pdf-processing/SKILL.md — 0 steps (2 warnings)
+    warn  line 8: references "references/REFERENCE.md", which is not in the skill directory
+    warn  line 10: references "scripts/merge.py", which is not in the skill directory
+```
+
+That is the failure worth catching. A dangling path survives code review — it looks like a real
+file — and the skill breaks mid-task when the agent tries to open it. Bare paths inside fenced
+code blocks are ignored, since those are usually illustrative rather than real references.
+
 ```sh
 npx github:ykzeng-yale/skill-md validate SKILL.md
 ```
