@@ -92,6 +92,40 @@ Zero dependencies, so `npx` runs instantly and it drops into CI without a toolch
 > Not yet on npm, so install straight from GitHub as shown. Once published the shorter
 > `npx skill-md validate` will work too.
 
+## It can repair what it is sure about
+
+`validate` tells you what is wrong. `fix` repairs the subset where the specification
+**determines** the right answer:
+
+```sh
+npx github:ykzeng-yale/skill-md fix ./my-skill           # prints the repaired file
+npx github:ykzeng-yale/skill-md fix ./skills --write     # applies it in place
+```
+
+- a UTF-8 BOM, which stops the file beginning with `---` so the frontmatter is never read
+- tabs in the frontmatter, which make the YAML unparseable and the skill silently skipped
+- a `name` with illegal characters, or one that does not match its parent directory
+- step numbering that skips, which is usually a step someone deleted
+
+### What it refuses to do, on purpose
+
+**It will not write your `description`.** That is the field most skills get wrong, and it is the
+one thing here a tool must not guess. The description is what an agent matches a request
+against, so a plausible-sounding trigger clause invented by a fixer would make the skill fire on
+the *wrong* requests — a worse failure than one that visibly fires on none, because it looks
+like it is working. `fix` names what is missing and leaves the sentence to you:
+
+```
+  yours  The description does not say WHEN to use the skill, which is the most common reason a
+         working skill never fires. [...] Add a clause such as "Use when the user asks to ...".
+```
+
+Same for a description over the 1,024-character limit: shortening it means deciding what
+matters, which is yours to decide.
+
+`fix` exits `0` even when it refuses things, because a refusal is a decision only the author can
+make rather than a failure. `validate` is the command that gates CI; `fix` is the one that helps.
+
 ## Already recorded the flow? Convert it
 
 You do not have to record anything new. If you have a **Chrome DevTools Recorder** export or a
@@ -195,9 +229,12 @@ npx github:ykzeng-yale/skill-md validate SKILL.md              # one file
 npx github:ykzeng-yale/skill-md validate ./skills              # recurse for SKILL.md / *.skill.md
 npx github:ykzeng-yale/skill-md validate ./skills --strict     # warnings fail too (CI)
 npx github:ykzeng-yale/skill-md validate SKILL.md --json       # machine-readable
+npx github:ykzeng-yale/skill-md fix ./my-skill                 # print mechanical repairs
+npx github:ykzeng-yale/skill-md fix ./skills --write           # apply them in place
 ```
 
-Exit codes: `0` valid · `1` problems found · `2` bad usage.
+Exit codes: `validate` — `0` valid · `1` problems found · `2` bad usage.
+`fix` — `0` always unless usage is wrong, since a refusal is not a failure.
 
 As a library:
 
