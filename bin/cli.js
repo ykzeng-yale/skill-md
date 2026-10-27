@@ -6,6 +6,7 @@ const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { convert } = require('../lib/convert.js');
 const { convertSide } = require('../lib/side.js');
+const { fix } = require('../lib/fix.js');
 const { findSkillFiles, listSkillDirFiles } = require('../lib/find.js');
 
 const USAGE = `skill-md — validate SKILL.md files (the portable format for AI agent skills)
@@ -14,8 +15,19 @@ Usage:
   npx skill-md validate <file...>     Validate one or more SKILL.md files
   npx skill-md validate <dir>         Validate every SKILL.md found under a directory
   npx skill-md convert <recording>    Chrome Recorder JSON or Selenium .side -> SKILL.md
+  npx skill-md fix <file|dir...>      Repair the mechanical defects a validator can be sure about
   npx skill-md --version
   npx skill-md --help
+
+Fix options:
+  --write     Apply the repairs in place (default: print the repaired file to stdout)
+
+  fix only changes things the specification DETERMINES: a UTF-8 BOM, tabs in the
+  frontmatter, a name with illegal characters or one that does not match its parent
+  directory, and step numbering that skips. It will not write your description:
+  that is what an agent matches a request against, and a trigger clause invented by
+  a tool would make the skill fire on the wrong requests, which is worse than one
+  that visibly fires on none. It reports those and leaves them to you.
 
 Convert options:
   --name <title>        Override the skill name/title
@@ -110,6 +122,49 @@ function main(argv) {
       process.stdout.write(res.markdown);
       process.stderr.write(`${res.stats.kept} steps (${res.stats.dropped} omitted${res.stats.assertions ? `, ${res.stats.assertions} assertions dropped` : ''})\n`);
     }
+    return 0;
+  }
+
+  if (cmd === 'fix') {
+    const write = args.includes('--write');
+    const targets = positional.slice(1);
+    if (targets.length === 0) {
+      process.stderr.write('fix: no files given\n');
+      return 2;
+    }
+    let files = [];
+    for (const t of targets) {
+      if (!fs.existsSync(t)) { process.stderr.write(`not found: ${t}\n`); return 2; }
+      files = files.concat(findSkillFiles(t));
+    }
+    if (files.length === 0) { process.stderr.write('no SKILL.md files found\n'); return 2; }
+
+    let changed = 0;
+    let leftForYou = 0;
+    for (const file of files) {
+      const before = fs.readFileSync(file, 'utf8');
+      const res = fix(before, { dirName: path.basename(path.dirname(path.resolve(file))) });
+      if (res.applied.length) {
+        changed++;
+        process.stderr.write(`${file}\n`);
+        for (const a of res.applied) process.stderr.write(`  fixed  ${a}\n`);
+      }
+      for (const r of res.refused) {
+        leftForYou++;
+        process.stderr.write(`${res.applied.length ? '' : file + '\n'}  yours  ${r}\n`);
+      }
+      if (write) {
+        if (res.text !== before) fs.writeFileSync(file, res.text);
+      } else if (files.length === 1) {
+        process.stdout.write(res.text);
+      }
+    }
+    if (!write && files.length > 1) {
+      process.stderr.write('\nNothing was written. Re-run with --write to apply.\n');
+    }
+    process.stderr.write(`\n${changed} file(s) repaired, ${leftForYou} thing(s) left for you.\n`);
+    // Exit 0 even with refusals: they are not failures, they are decisions only the author can
+    // make. `validate` is the command that gates; `fix` is the one that helps.
     return 0;
   }
 
