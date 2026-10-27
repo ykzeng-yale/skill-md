@@ -10,12 +10,19 @@
 // caused it, rather than discovering it when an agent silently skips a step in production.
 //
 // Env (set by the action): INPUT_PATH, INPUT_STRICT, INPUT_FAIL_ON_WARNINGS
+//
+// This action NEVER writes to the checkout. A CI step that silently rewrites a contributor's
+// files would be a hostile surprise, and a fix applied without review is how a renumbered step
+// hides a deleted one. So it reports which problems are mechanically repairable and prints the
+// command to run locally. fix() phrases its items in the past tense because it normally has
+// written them, so the summary says explicitly that nothing was changed.
 // Exit 0 when everything passed, 1 otherwise.
 
 const fs = require('fs');
 const path = require('path');
 const { validate } = require('../lib/validate.js');
 const { findSkillFiles, listSkillDirFiles } = require('../lib/find.js');
+const { fix } = require('../lib/fix.js');
 
 function bool(v) {
   return String(v == null ? '' : v).trim().toLowerCase() === 'true';
@@ -70,6 +77,7 @@ function main() {
   }
 
   const rows = [];
+  const repairDetails = [];
   let failed = 0;
   let totalErrors = 0;
   let totalWarnings = 0;
@@ -86,6 +94,25 @@ function main() {
     // Hints are advisory; as notices they stay visible without colouring the run.
     for (const h of res.hints) annotate('notice', file, h.line, h.msg);
 
+    // Dry-run the fixer to tell the reader which of the above they do not have to hand-edit.
+    let repairable = [];
+    let needsHuman = [];
+    try {
+      const f = fix(fs.readFileSync(file, 'utf8'), { dirName: path.basename(path.dirname(path.resolve(file))) });
+      repairable = f.applied;
+      needsHuman = f.refused;
+    } catch (err) {
+      // A fixer crash must never fail someone's build over a suggestion.
+      process.stdout.write(`::notice::could not compute repair suggestions for ${file}: ${err.message}\n`);
+    }
+    if (repairable.length) {
+      annotate('notice', file, 1,
+        `${repairable.length} of these can be repaired automatically — run: npx github:ykzeng-yale/skill-md fix ${file} --write`);
+      repairDetails.push({ file: file, repairable: repairable, needsHuman: needsHuman });
+    } else if (needsHuman.length) {
+      repairDetails.push({ file: file, repairable: [], needsHuman: needsHuman });
+    }
+
     totalErrors += res.errors.length;
     totalWarnings += res.warnings.length;
     const bad = !res.ok || (failOnWarnings && res.warnings.length > 0);
@@ -94,7 +121,7 @@ function main() {
     rows.push(`| \`${file}\` | ${res.ok ? (bad ? '⚠️ warnings' : '✅ valid') : '❌ invalid'} | ${res.stats.steps} | ${res.errors.length} | ${res.warnings.length} | ${res.hints.length} |`);
   }
 
-  summary([
+  const summaryLines = [
     '### SKILL.md validation',
     '',
     `${files.length - failed}/${files.length} file${files.length === 1 ? '' : 's'} passed` +
@@ -103,7 +130,24 @@ function main() {
     '| File | Result | Steps | Errors | Warnings | Hints |',
     '| --- | --- | --: | --: | --: | --: |',
     ...rows,
-  ]);
+  ];
+
+  const anyRepairable = repairDetails.some(function (d) { return d.repairable.length; });
+  const anyHuman = repairDetails.some(function (d) { return d.needsHuman.length; });
+  if (anyRepairable || anyHuman) {
+    summaryLines.push('', '#### Repairs', '', '_Nothing in your checkout was changed by this action._', '');
+    for (const d of repairDetails) {
+      summaryLines.push(`**\`${d.file}\`**`, '');
+      if (d.repairable.length) {
+        summaryLines.push(`Mechanically repairable (\`npx github:ykzeng-yale/skill-md fix ${d.file} --write\`):`, '');
+        for (const r of d.repairable) summaryLines.push(`- ${r}`);
+        summaryLines.push('');
+      }
+      for (const h of d.needsHuman) summaryLines.push(`- **Needs a person:** ${h}`);
+      summaryLines.push('');
+    }
+  }
+  summary(summaryLines);
 
   process.stdout.write(
     `${files.length - failed}/${files.length} valid — ${totalErrors} error(s), ${totalWarnings} warning(s)\n`

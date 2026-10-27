@@ -280,6 +280,30 @@ Inputs: `path` (file or directory, default `.`), `strict` / `fail-on-warnings` (
 Errors always fail the run; warnings only do under `strict`; hints are notices. A repo with no
 skill files passes, so you can add the action before writing your first skill.
 
+The step summary also tells you which problems you do **not** have to hand-edit, with the command
+to run:
+
+```
+#### Repairs
+
+_Nothing in your checkout was changed by this action._
+
+**`skills/fill-ticket/SKILL.md`**
+
+Mechanically repairable (`npx github:ykzeng-yale/skill-md fix skills/fill-ticket/SKILL.md --write`):
+
+- Removed a UTF-8 byte-order mark. It was preventing the file from starting with ---, [...]
+- Changed name from "Fill_Ticket" to "fill-ticket" [...]
+- Renumbered 2 steps sequentially (they read 1, 5). A gap usually means a step was deleted, [...]
+
+- **Needs a person:** The description does not say WHEN to use the skill [...]
+```
+
+**The action never writes to your checkout.** A CI step that silently rewrites a contributor's
+files is a hostile surprise, and a repair applied without review is how a renumbered step hides a
+deleted one. It tells you what is repairable and leaves the decision with you. A clean repo gets
+no Repairs section at all.
+
 Step-level problems annotate the offending line — gapped numbering lands on the `### Step N`
 heading itself. File-level ones (a missing frontmatter key, a missing section) annotate line 1,
 because they are about the file rather than a place in it.
