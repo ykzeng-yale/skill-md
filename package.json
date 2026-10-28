@@ -45,7 +45,7 @@
     "lib"
   ],
   "scripts": {
-    "test": "node test/validate.test.js && node test/convert.test.js && node test/side.test.js && node test/action.test.js"
+    "test": "node test/validate.test.js && node test/convert.test.js && node test/side.test.js && node test/fix.test.js && node test/action.test.js"
   },
   "engines": {
     "node": ">=14"
